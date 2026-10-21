@@ -201,6 +201,7 @@ window.addEventListener('auntie:join',async e=>{
   inlineError('#join-error','');
   if(!operational){inlineError('#join-error','The booking database is not ready.');return;}
   if(!authenticated){inlineError('#join-error','Sign in or create an account before submitting an application.');$('#account').scrollIntoView({behavior:'smooth'});return;}
+  if(formValue('join-bio').length < 10){inlineError('#join-error','Please describe your service in at least 10 characters before submitting your application.');$('#join-bio').focus();return;}
   const button=$('#helper-join-form .form-submit');button.disabled=true;
   try {
     const payload={display_name:formValue('join-name'),service:formValue('join-service'),area:formValue('join-area'),
