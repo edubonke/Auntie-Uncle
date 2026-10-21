@@ -1,0 +1,20 @@
+/* Phase 5A: appointment slots + rescheduling, accessible on mobile. */
+.phase5-slot-section{margin:16px 0 20px;border:1px solid #d7e4d8;border-radius:13px;background:#f5faf5;padding:17px}
+.phase5-slot-section .booking-topline{align-items:center;margin-bottom:8px}
+.phase5-slot-section h3{margin:0;font-family:Georgia,serif;font-size:1.38rem;letter-spacing:-.025em}
+.phase5-slot-section p{margin:6px 0 10px;color:#57695b}
+.phase5-slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px;max-height:320px;overflow-y:auto}
+.phase5-slot{border:1px solid #9eb7a6;border-radius:9px;min-height:43px;background:white;color:#31573d;font-size:.9rem;font-weight:750}
+.phase5-slot:not(:disabled):hover{background:#e3efe2}
+.phase5-slot[aria-pressed="true"]{color:white;background:var(--ink);border-color:var(--ink)}
+.phase5-slot.phase5-busy{background:#edeae8;color:#999b98;text-decoration:line-through;cursor:not-allowed;opacity:.73}
+#phase5-slot-message{margin:13px 0 2px;line-height:1.45}
+#phase5-setup-note{border-radius:8px;background:#fef4e6;border:1px solid #f1d8ad;color:#664715;padding:12px;margin:16px 0}
+.phase5-reschedule-status{font-size:.8rem;color:#3d6246;background:#edf5eb;padding:8px 10px;border-radius:7px;margin:12px 0}
+.phase5-reschedule-form{background:#f9fbf8;border:1px solid #d7e1d4;padding:14px;border-radius:10px;margin:12px 0}
+.phase5-reschedule-form[hidden]{display:none}
+.phase5-reschedule-form>strong{display:block;font-size:.92rem;margin-bottom:11px}
+.phase5-reschedule-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.phase5-reschedule-label{display:flex;flex-direction:column;gap:5px;font-weight:700;color:#3e5946;font-size:.78rem;margin-bottom:12px}
+.phase5-reschedule-label input,.phase5-reschedule-label textarea{border:1px solid #c3d1c4;border-radius:7px;padding:9px 10px;background:white;font-weight:400;font-size:.9rem;width:100%;min-width:0;color:var(--ink)}
+@media(max-width:680px){.phase5-reschedule-fields{grid-template-columns:1fr}.phase5-slot-section{padding:13px}.phase5-slots{grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:5px}}
