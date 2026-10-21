@@ -92,104 +92,261 @@ async function loadDirectory() {
   $('#footer-disclaimer').textContent = 'Marketplace beta: only administrator-approved profiles are public. Bookings are requests, not confirmed appointments. No payments, ID verification or background screening are provided.';
 }
 
-async function refreshAccount() {
-  if (refreshing) return;
-  refreshing = true;
-  try {
-    const {data:{user:authUser}, error} = await supabase.auth.getUser();
-    user = error ? null : authUser;
-    authenticated = Boolean(user);
-    $('#account-anon').hidden = authenticated;
-    $('#account-signed-in').hidden = !authenticated;
-    if (!authenticated) {
-      $('#account-user').textContent = '';
-      $('#customer-bookings').replaceChildren();
-      $('#provider-bookings').replaceChildren();
-      $('#admin-panel').hidden = true;
-      $('#helper-application-state').textContent = 'Sign in to submit an application.';
-      return;
-    }
-    $('#account-user').textContent = user.email || 'Signed-in customer';
-    if (!operational) return;
-    const [{data:myHelpers,error:helperErr}, {data:myBookings,error:bookingErr}, {data:isAdmin,error:adminErr}] = await Promise.all([
-      supabase.from('helper_profiles').select('id,display_name,status,service').eq('owner_id',user.id).limit(1),
-      supabase.from('bookings').select('id,service,area,preferred_date,preferred_time,estimated_hours,details,status,created_at').eq('customer_id',user.id).order('created_at',{ascending:false}).limit(25),
-      supabase.rpc('am_i_marketplace_admin')
-    ]);
-    if (helperErr || bookingErr || adminErr) { status('Connected, but account records could not be loaded. Check migration and RLS policies.',true); return; }
-    const mine = myHelpers?.[0];
-    $('#helper-application-state').textContent = mine ? `Your ${mine.service} application: ${mine.status}.` : 'You have not submitted an application.';
-    renderBookingList('#customer-bookings',myBookings ?? [],'customer');
-    if (mine) {
-      const {data:providerBookings,error:providerErr} = await supabase.from('bookings')
-        .select('id,service,area,preferred_date,preferred_time,estimated_hours,details,status,created_at')
-        .eq('helper_id',mine.id).order('created_at',{ascending:false}).limit(25);
-      if (!providerErr) renderBookingList('#provider-bookings',providerBookings ?? [],'helper');
-    } else {$('#provider-bookings').replaceChildren(elt('p','Apply to become a helper to manage requests.'));}
-    $('#admin-panel').hidden = !isAdmin;
-    if (isAdmin) await loadAdminApplications();
-  } catch (error) {console.warn('[Auntie & Uncle] Account refresh failed:',error?.message || 'Unknown error');status('The account could not be refreshed. Retry when your connection is available.',true);}
-  finally {refreshing = false;}
+// Phase 3 uses only the existing RLS-protected tables and narrow RPCs.
+// Dashboard statistics cover the 100 most recent records, not an all-time total.
+let dashboardUserId = null;
+let activeDashboard = 'customer';
+let adminEnabled = false;
+let currentHelper = null;
+let customerRows = [], providerRows = [], adminHelperRows = [], adminBookingRows = [];
+const BOOKING_COLUMNS = 'id,service,frequency,area,preferred_date,preferred_time,estimated_hours,details,status,created_at';
+const statusLabel = value => ({pending:'Pending',approved:'Approved',accepted:'Accepted',declined:'Declined',cancelled:'Cancelled',rejected:'Rejected',suspended:'Suspended'})[value] || 'Unknown';
+const briefDate = value => value ? new Date(value + 'T12:00:00').toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'}) : 'Date not provided';
+const money = value => 'R' + Number(value).toLocaleString('en-ZA',{minimumFractionDigits:0,maximumFractionDigits:2});
+const notice = message => {$('#dashboard-feedback').textContent=message;};
+function summaryCard(label, number, note) {
+  const item=elt('div','','stat-card');
+  item.append(elt('span',label,'stat-label'),elt('strong',String(number),'stat-number'),elt('span',note,'stat-note'));
+  return item;
 }
-function renderBookingList(selector, rows, view) {
-  const root = $(selector);
-  root.replaceChildren();
-  if (!rows.length) {root.append(elt('p','No requests yet.','form-small')); return;}
-  rows.forEach(row => {
-    const card = elt('article','','booking-item');
-    const title = elt('strong',`${row.service} · ${row.area}`);
-    const date = elt('p',`${row.preferred_date} ${row.preferred_time?.slice(0,5) || ''} · ${row.status}`,'booking-meta');
-    const desc = elt('p',row.details,'booking-description');
-    card.append(title,date,desc);
-    if (view === 'helper' && row.status === 'pending') {
-      ['accepted','declined'].forEach(decision => {
-        const button=elt('button',decision==='accepted'?'Accept request':'Decline request','button button-outline button-small');
-        button.type='button';
-        button.addEventListener('click',async () => {
-          button.disabled=true;
-          const {error}=await supabase.rpc('respond_to_booking',{p_booking_id:row.id,p_decision:decision});
-          if(error) {alert(safeError(error));button.disabled=false;return;}
-          await refreshAccount();
-        });
-        card.append(button);
-      });
-    } else if(view==='customer' && ['pending','accepted'].includes(row.status)) {
-      const button=elt('button','Cancel request','button button-outline button-small');
-      button.type='button';
-      button.addEventListener('click', async()=>{
-        if (!confirm('Cancel this request?')) return;
-        button.disabled=true;
-        const {error}=await supabase.rpc('cancel_my_booking',{p_booking_id:row.id});
-        if(error){alert(safeError(error));button.disabled=false;return;}
-        await refreshAccount();
-      });
-      card.append(button);
-    }
-    root.append(card);
+function dashboardStats() {
+  const stats=$('#dashboard-stats');stats.replaceChildren();
+  let metrics;
+  if(activeDashboard==='admin') {
+    metrics=[
+      ['Applications',adminHelperRows.filter(p=>p.status==='pending').length,'Waiting for review'],
+      ['Published',adminHelperRows.filter(p=>p.status==='approved').length,'Approved listings'],
+      ['Bookings',adminBookingRows.length,'Most recent records'],
+      ['Accepted',adminBookingRows.filter(b=>b.status==='accepted').length,'Recent accepted requests']
+    ];
+  } else {
+    const rows=activeDashboard==='helper'?providerRows:customerRows;
+    metrics=[
+      ['Requests',rows.length,'Most recent records'],
+      ['Pending',rows.filter(b=>b.status==='pending').length,'Awaiting a response'],
+      ['Accepted',rows.filter(b=>b.status==='accepted').length,'Agreed requests'],
+      ['Closed',rows.filter(b=>['declined','cancelled'].includes(b.status)).length,'Declined or cancelled']
+    ];
+  }
+  for(const metric of metrics)stats.append(summaryCard(...metric));
+}
+function switchDashboard(next, focus=false) {
+  if(!['customer','helper','admin'].includes(next) || (next==='admin'&&!adminEnabled))return;
+  activeDashboard=next;
+  for(const name of ['customer','helper','admin']){
+    const tab=$('#tab-'+name), panel=$('#dashboard-'+name), selected=name===next;
+    tab.hidden=name==='admin'&&!adminEnabled;
+    tab.setAttribute('aria-selected',String(selected));
+    tab.tabIndex=selected?0:-1;
+    panel.hidden=!selected;
+  }
+  dashboardStats();
+  if(focus)$('#tab-'+next).focus();
+}
+for(const tab of document.querySelectorAll('[data-dashboard]')){
+  tab.addEventListener('click',()=>switchDashboard(tab.dataset.dashboard));
+  tab.addEventListener('keydown',event=>{
+    if(!['ArrowRight','ArrowLeft','Home','End'].includes(event.key))return;
+    event.preventDefault();
+    const options=['customer','helper',...(adminEnabled?['admin']:[])];
+    const index=options.indexOf(tab.dataset.dashboard);
+    const next=event.key==='Home'?0:event.key==='End'?options.length-1:
+      (index+(event.key==='ArrowRight'?1:-1)+options.length)%options.length;
+    switchDashboard(options[next],true);
   });
 }
-async function loadAdminApplications() {
-  const root=$('#pending-applications');root.replaceChildren();
-  const {data,error}=await supabase.from('helper_profiles')
-    .select('id,display_name,service,area,hourly_rate,bio,status').eq('status','pending').order('created_at',{ascending:true}).limit(50);
-  if(error){root.append(elt('p','Unable to load pending applications.'));return;}
-  if(!data.length){root.append(elt('p','No pending helper applications.'));return;}
-  for(const item of data){
-    const card=elt('article','','booking-item');
-    card.append(elt('strong',`${item.display_name} · ${item.service} · ${item.area} · R${item.hourly_rate}/hr`),elt('p',item.bio,'booking-description'));
-    for(const decision of ['approved','rejected']){
-      const btn=elt('button',decision==='approved'?'Approve listing':'Reject listing','button button-outline button-small');
-      btn.type='button';btn.addEventListener('click',async()=>{
-        if(!confirm(`${decision==='approved'?'Approve':'Reject'} ${item.display_name}?`))return;
-        btn.disabled=true;
-        const {error}=await supabase.rpc('review_helper_application',{p_helper_id:item.id,p_new_status:decision});
-        if(error){alert(safeError(error));btn.disabled=false;return;}
-        await loadDirectory();await loadAdminApplications();
-      });card.append(btn);
-    }root.append(card);
+function actionButton(label, handler, style='outline'){
+  const btn=elt('button',label,'button button-'+style+' button-small');btn.type='button';
+  btn.addEventListener('click',async()=>{
+    btn.disabled=true;
+    try{await handler();}catch(error){notice('Action failed. '+safeError(error));}
+    finally{btn.disabled=false;}
+  });
+  return btn;
+}
+function renderBookingList(selector, rows, view) {
+  const root=$(selector), filter=$(view==='customer'?'#customer-status-filter':'#helper-status-filter').value;
+  const filtered=filter==='all'?rows:rows.filter(r=>r.status===filter);
+  root.replaceChildren();
+  if(!filtered.length){root.append(elt('p',rows.length?'No requests match this filter.':'No requests yet.','empty-state'));return;}
+  for(const row of filtered){
+    const card=elt('article','','booking-item booking-card');
+    const heading=elt('div','','booking-topline');
+    heading.append(elt('strong',row.service+' · '+row.area),elt('span',statusLabel(row.status),'status-chip status-'+row.status));
+    const when=briefDate(row.preferred_date)+(row.preferred_time?' at '+row.preferred_time.slice(0,5):'');
+    const parts=[when,row.frequency||'One-time help',row.estimated_hours?Number(row.estimated_hours)+' hour(s)':'Duration to confirm'];
+    card.append(heading,elt('p',parts.join(' · '),'booking-meta'),elt('p',row.details,'booking-description'));
+    if(view==='helper'&&row.status==='pending'){
+      const actions=elt('div','','booking-actions');
+      for(const decision of ['accepted','declined']){
+        actions.append(actionButton(decision==='accepted'?'Accept request':'Decline request',async()=>{
+          if(!confirm(decision==='accepted'?'Accept this booking request?':'Decline this booking request?'))return;
+          const {error}=await supabase.rpc('respond_to_booking',{p_booking_id:row.id,p_decision:decision});
+          if(error)throw error;
+          notice('Request '+decision+'.');await refreshAccount();
+        },decision==='accepted'?'dark':'outline'));
+      }
+      card.append(actions);
+    }else if(view==='customer'&&['pending','accepted'].includes(row.status)){
+      card.append(actionButton('Cancel request',async()=>{
+        if(!confirm('Cancel this request?'))return;
+        const {error}=await supabase.rpc('cancel_my_booking',{p_booking_id:row.id});
+        if(error)throw error;
+        notice('Booking request cancelled.');await refreshAccount();
+      }));
+    }
+    root.append(card);
   }
 }
+$('#customer-status-filter').addEventListener('change',()=>renderBookingList('#customer-bookings',customerRows,'customer'));
+$('#helper-status-filter').addEventListener('change',()=>renderBookingList('#provider-bookings',providerRows,'helper'));
 
+function fillHelperForm(helper){
+  const fields={'edit-helper-name':helper.display_name,'edit-helper-service':helper.service,'edit-helper-area':helper.area,
+    'edit-helper-rate':helper.hourly_rate,'edit-helper-years':helper.years_experience,'edit-helper-bio':helper.bio};
+  for(const [id,value] of Object.entries(fields))document.getElementById(id).value=value??'';
+}
+$('#toggle-profile-edit').addEventListener('click',()=>{
+  const form=$('#helper-profile-form'),expanded=form.hidden;
+  form.hidden=!expanded;$('#toggle-profile-edit').setAttribute('aria-expanded',String(expanded));
+  if(expanded)$('#edit-helper-name').focus();
+});
+$('#helper-profile-form').addEventListener('submit',async e=>{
+  e.preventDefault();inlineError('#edit-helper-error','');
+  if(!currentHelper)return;
+  const form=e.currentTarget;if(!form.reportValidity())return;
+  const bio=formValue('edit-helper-bio');
+  if(bio.length<10){inlineError('#edit-helper-error','Please describe your service in at least 10 characters.');return;}
+  const payload={display_name:formValue('edit-helper-name'),service:formValue('edit-helper-service'),
+    area:formValue('edit-helper-area'),hourly_rate:Number(formValue('edit-helper-rate')),
+    years_experience:Number(formValue('edit-helper-years')),bio};
+  if(!confirm('Save changes? If this listing is approved, changes to public details will return it to Pending review.'))return;
+  const button=form.querySelector('[type="submit"]');button.disabled=true;
+  try{
+    const {error}=await supabase.from('helper_profiles').update(payload).eq('id',currentHelper.id);
+    if(error)throw error;
+    notice('Profile saved. Changes to an approved listing require another administrator review.');
+    form.hidden=true;$('#toggle-profile-edit').setAttribute('aria-expanded','false');
+    await loadDirectory();await refreshAccount();
+  }catch(error){inlineError('#edit-helper-error',safeError(error));}
+  finally{button.disabled=false;}
+});
+function helperProfilePanel(profile){
+  currentHelper=profile??null;
+  $('#helper-profile-panel').hidden=!profile;
+  $('#helper-apply-link').hidden=Boolean(profile);
+  $('#helper-application-state').textContent=profile?
+    'Your '+profile.service+' application: '+statusLabel(profile.status)+'.'+
+      (profile.status==='approved'?' Your listing is visible to customers.':' It is not currently in the public directory.'):
+    'You have not submitted a helper application.';
+  if(profile)fillHelperForm(profile);
+}
+function adminBookingOverview(){
+  const root=$('#admin-bookings');root.replaceChildren();
+  if(!adminBookingRows.length){root.append(elt('p','No booking activity yet.','empty-state'));return;}
+  for(const booking of adminBookingRows.slice(0,15)){
+    const card=elt('article','','admin-compact-row');
+    card.append(elt('strong',booking.service+' · '+booking.area),
+      elt('span',briefDate(booking.preferred_date)+' · '+statusLabel(booking.status),'booking-meta'));
+    root.append(card);
+  }
+  if(adminBookingRows.length>15)root.append(elt('p','Showing the 15 most recent requests.','form-small'));
+}
+function adminProfileList(){
+  const root=$('#admin-helper-list');root.replaceChildren();
+  const listed=adminHelperRows.filter(p=>['approved','suspended','rejected'].includes(p.status));
+  if(!listed.length){root.append(elt('p','No reviewed listings yet.','empty-state'));return;}
+  for(const helper of listed.slice(0,40)){
+    const card=elt('article','','admin-compact-row');
+    const title=elt('div','','booking-topline');
+    title.append(elt('strong',helper.display_name+' · '+helper.service+' · '+helper.area),
+      elt('span',statusLabel(helper.status),'status-chip status-'+helper.status));
+    card.append(title,elt('p',money(helper.hourly_rate)+'/hr (indicative)','booking-meta'));
+    if(helper.status==='approved')card.append(actionButton('Suspend listing',async()=>{
+      if(!confirm('Suspend this listing? It will disappear from public search.'))return;
+      await reviewHelper(helper.id,'suspended');}));
+    if(helper.status==='suspended')card.append(actionButton('Return to review queue',async()=>{
+      if(!confirm('Return this listing to Pending review?'))return;
+      await reviewHelper(helper.id,'pending');}));
+    root.append(card);
+  }
+}
+async function reviewHelper(helperId,nextStatus){
+  const {error}=await supabase.rpc('review_helper_application',{p_helper_id:helperId,p_new_status:nextStatus});
+  if(error)throw error;
+  notice('Helper listing updated to '+statusLabel(nextStatus)+'.');
+  await loadDirectory();await refreshAccount();
+}
+function renderPendingApplications(){
+  const root=$('#pending-applications');root.replaceChildren();
+  const pending=adminHelperRows.filter(p=>p.status==='pending');
+  if(!pending.length){root.append(elt('p','No pending helper applications.','empty-state'));return;}
+  for(const applicant of pending.slice(0,50)){
+    const card=elt('article','','booking-item booking-card');
+    card.append(elt('strong',applicant.display_name+' · '+applicant.service+' · '+applicant.area),
+      elt('p',money(applicant.hourly_rate)+'/hr · '+Number(applicant.years_experience)+' years reported experience','booking-meta'),
+      elt('p',applicant.bio,'booking-description'));
+    const actions=elt('div','','booking-actions');
+    for(const decision of ['approved','rejected']){
+      actions.append(actionButton(decision==='approved'?'Approve listing':'Reject listing',async()=>{
+        if(!confirm((decision==='approved'?'Approve':'Reject')+' '+applicant.display_name+
+          '? Only approve after completing your verification and safeguarding checks.'))return;
+        await reviewHelper(applicant.id,decision);
+      },decision==='approved'?'dark':'outline'));
+    }
+    card.append(actions);root.append(card);
+  }
+}
+async function loadAdminOverview(){
+  const [{data:profiles,error:helperError},{data:bookings,error:bookingError}]=await Promise.all([
+    supabase.from('helper_profiles').select('id,display_name,service,area,hourly_rate,years_experience,bio,status,created_at').order('created_at',{ascending:false}).limit(100),
+    supabase.from('bookings').select('id,service,area,preferred_date,status,created_at').order('created_at',{ascending:false}).limit(100)
+  ]);
+  if(helperError||bookingError){notice('Some administrator records could not be loaded. Please retry.');return;}
+  adminHelperRows=profiles??[];adminBookingRows=bookings??[];
+  renderPendingApplications();adminProfileList();adminBookingOverview();dashboardStats();
+}
+async function refreshAccount() {
+  if(refreshing)return;
+  refreshing=true;
+  try{
+    const {data:{user:authUser},error}=await supabase.auth.getUser();
+    user=error?null:authUser;authenticated=Boolean(user);
+    $('#account-anon').hidden=authenticated;$('#account-signed-in').hidden=!authenticated;
+    if(!authenticated){
+      dashboardUserId=null;adminEnabled=false;currentHelper=null;
+      customerRows=[];providerRows=[];adminHelperRows=[];adminBookingRows=[];
+      $('#account-user').textContent='';
+      $('#customer-bookings').replaceChildren();$('#provider-bookings').replaceChildren();
+      switchDashboard('customer');
+      return;
+    }
+    $('#account-user').textContent=user.email||'Signed-in member';
+    if(!operational){notice('Marketplace database is not available yet.');return;}
+    const newSession=dashboardUserId!==user.id;dashboardUserId=user.id;
+    const [{data:mine,error:helperErr},{data:bookings,error:bookingErr},{data:isAdmin,error:adminErr}]=await Promise.all([
+      supabase.from('helper_profiles').select('id,display_name,service,area,hourly_rate,years_experience,bio,status').eq('owner_id',user.id).limit(1),
+      supabase.from('bookings').select(BOOKING_COLUMNS).eq('customer_id',user.id).order('created_at',{ascending:false}).limit(100),
+      supabase.rpc('am_i_marketplace_admin')
+    ]);
+    if(helperErr||bookingErr||adminErr){notice('Could not load your account data. Check the database permissions and try again.');return;}
+    const profile=mine?.[0]??null;customerRows=bookings??[];helperProfilePanel(profile);
+    adminEnabled=Boolean(isAdmin);
+    if(profile){
+      const {data:received,error:incomingErr}=await supabase.from('bookings').select(BOOKING_COLUMNS)
+        .eq('helper_id',profile.id).order('created_at',{ascending:false}).limit(100);
+      if(incomingErr){notice('Could not load incoming bookings.');providerRows=[];}
+      else providerRows=received??[];
+    }else providerRows=[];
+    renderBookingList('#customer-bookings',customerRows,'customer');
+    renderBookingList('#provider-bookings',providerRows,'helper');
+    if(adminEnabled)await loadAdminOverview();
+    else{adminHelperRows=[];adminBookingRows=[];}
+    if(newSession)activeDashboard=adminEnabled?'admin':profile?'helper':'customer';
+    switchDashboard(activeDashboard==='admin'&&!adminEnabled?'customer':activeDashboard);
+  }catch(error){console.warn('[Auntie & Uncle] Dashboard refresh failed:',error?.code||'unexpected');notice('Unable to refresh your account. Try again.');}
+  finally{refreshing=false;}
+}
 $('#account-form').addEventListener('submit', async event => {
   event.preventDefault();
   inlineError('#account-error','');
