@@ -7,9 +7,13 @@ A responsive, two-sided South African marketplace website for households and ind
 ## Status
 
 - Implemented: responsive static site; example search; account registration and password login; public *approved-only* helper directory; signed-in helper applications; signed-in customer booking requests; participant-only booking views; helper accept/decline; customer cancellation; admin-controlled listing approval; GitHub Pages deployment workflow.
-- Migration **not yet applied** to the hosted Supabase instance. Until it is applied, the site remains in demonstration mode and does not send booking requests.
-- Not implemented: payments, verification/background checks, full platform terms and privacy policy, document uploads, chat, availability and scheduling conflicts, fees, reviews, service guarantee, production monitoring, safeguarding workflows for childcare.
+- Migration status is verified in Supabase, not inferred from GitHub. Earlier marketplace, Phase 4 and Phase 5A migrations have been applied manually; Phase 5B is optional until separately activated. Do not rerun an applied migration.
+- Not implemented or not production-certified: payments, external email/SMS delivery, automatic recurring subscriptions, identity/background checks, formal terms and privacy policy, full booking concurrency testing, fees, customer reviews, production monitoring, and safeguarding workflows for childcare.
 - Public listing approval is an internal administrative decision, **not proof of ID, qualification or background checks**.
+
+## Phase 5B — Bounded recurring booking requests
+
+The platform supports individually approved **weekly, fortnightly and monthly series of 2–8 visits** after an **additional SQL migration**. The [Phase 5B browser-only setup and security test guide](PHASE5B_SETUP.md) explains activation and required acceptance checks. **Until migration, existing one-time bookings and earlier features continue unchanged.** No recurring subscriptions, payments or automatic confirmations are implied.
 
 ## Phase 5A — Appointment scheduling and rescheduling
 
