@@ -1,4 +1,4 @@
-/* Auntie & Uncle marketplace prototype v0.2 — no accounts, backend, booking or payments. */
+/* Auntie & Uncle marketplace — progressive enhancement: demo until Supabase schema is active. */
 'use strict';
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -15,6 +15,9 @@ const SAMPLE_HELPERS = Object.freeze([
   {id: 'p07', name: 'Ayanda N.', initials: 'AN', service: 'Cleaning', area: 'Johannesburg CBD', regions: ['Johannesburg', 'Braamfontein'], rate: 200, years: 7, icon: '🧽', tone: 'mint', headline: 'A fresh start, every visit', bio: 'An example cleaning provider who offers detailed home refreshes and tailored plans for smaller urban spaces.', services: ['Apartment cleaning', 'Deep cleans', 'Once-off refreshes'], schedule: 'Weekdays'},
   {id: 'p08', name: 'Themba M.', initials: 'TM', service: 'Handyman', area: 'Centurion', regions: ['Centurion', 'Pretoria', 'Tshwane'], rate: 320, years: 9, icon: '🔧', tone: 'sage', headline: 'Everyday repairs, clearly scoped', bio: 'An illustrative profile for furniture assembly and simple household maintenance with up-front scoping of materials and effort.', services: ['Furniture assembly', 'Minor maintenance', 'Shelving'], schedule: 'Selected weekdays and Saturdays'}
 ]);
+
+let directoryHelpers = SAMPLE_HELPERS;
+let usingLiveDirectory = false;
 
 const menuToggle = $('#menu-toggle');
 const navigation = $('#primary-nav');
@@ -75,7 +78,7 @@ function helperIcon(helper, large = false) {
 function renderHelpers() {
   const category = categoryInput.value;
   const query = areaInput.value.trim().toLocaleLowerCase('en-ZA');
-  const sorted = SAMPLE_HELPERS.filter(helper => (category === 'all' || helper.service === category) && (!query || [...helper.regions, helper.area].some(r => r.toLocaleLowerCase('en-ZA').includes(query))));
+  const sorted = directoryHelpers.filter(helper => (category === 'all' || helper.service === category) && (!query || [...helper.regions, helper.area].some(r => r.toLocaleLowerCase('en-ZA').includes(query))));
   if (sortInput.value === 'rate-low') sorted.sort((a,b) => a.rate - b.rate);
   if (sortInput.value === 'rate-high') sorted.sort((a,b) => b.rate - a.rate);
   if (sortInput.value === 'experience') sorted.sort((a,b) => b.years - a.years);
@@ -83,19 +86,19 @@ function renderHelpers() {
   sorted.forEach(helper => {
     const card = el('article', 'helper-card');
     const header = el('div', 'helper-card-header');
-    header.append(helperIcon(helper), el('span', 'sample-badge', 'EXAMPLE PROFILE'));
+    header.append(helperIcon(helper), el('span', 'sample-badge', helper.isLive ? 'APPROVED LISTING' : 'EXAMPLE PROFILE'));
     const info = el('div', 'helper-info');
     info.append(el('span', 'helper-service', helper.service), el('h3', '', helper.name), el('p', 'helper-tagline', helper.headline));
     const meta = el('div', 'helper-meta');
-    meta.append(el('span', '', `📍 ${helper.area}`), el('span', '', `◷ ${helper.years} years (example)`));
+    meta.append(el('span', '', `📍 ${helper.area}`), el('span', '', `◷ ${helper.years} years${helper.isLive ? '' : ' (example)'}`));
     const bottom = el('div', 'helper-card-bottom');
     const rate = el('div', 'helper-rate');
-    rate.append(el('strong', '', formatRand(helper.rate)), el('small', '', '/hr · sample rate'));
+    rate.append(el('strong', '', formatRand(helper.rate)), el('small', '', helper.isLive ? '/hr · indicative rate' : '/hr · sample rate'));
     bottom.append(rate, actionButton('View profile ↗', () => openHelper(helper.id), 'profile-button'));
     card.append(header, info, meta, bottom);
     helperGrid.append(card);
   });
-  resultCount.textContent = `${sorted.length} fictional helper ${sorted.length === 1 ? 'profile' : 'profiles'} shown`;
+  resultCount.textContent = `${sorted.length} ${usingLiveDirectory ? 'approved helper' : 'fictional helper'} ${sorted.length === 1 ? 'profile' : 'profiles'} shown`;
   emptyMarket.hidden = sorted.length > 0;
   helperGrid.hidden = sorted.length === 0;
 }
@@ -107,30 +110,30 @@ $('#empty-reset').addEventListener('click', resetFilters);
 renderHelpers();
 
 function openHelper(id) {
-  const helper = SAMPLE_HELPERS.find(item => item.id === id);
+  const helper = directoryHelpers.find(item => item.id === id);
   if (!helper) return;
   dialogContent.replaceChildren();
   const head = el('div', 'profile-dialog-head');
   const details = el('div', 'profile-dialog-intro');
-  details.append(el('p', 'helper-service', helper.service), el('h2', '', helper.name), el('p', '', helper.headline), el('p', 'profile-location', `📍 ${helper.area} · ${helper.years} years (illustrative)`));
+  details.append(el('p', 'helper-service', helper.service), el('h2', '', helper.name), el('p', '', helper.headline), el('p', 'profile-location', `📍 ${helper.area} · ${helper.years} years${helper.isLive ? '' : ' (illustrative)'}`));
   details.querySelector('h2').id = 'helper-dialog-title';
   head.append(helperIcon(helper, true), details);
   const bio = el('p', 'profile-bio', helper.bio);
-  const listTitle = el('h3', 'profile-subhead', 'Example services');
+  const listTitle = el('h3', 'profile-subhead', helper.isLive ? 'Offered services' : 'Example services');
   const list = el('ul', 'profile-skill-list');
   helper.services.forEach(item => list.append(el('li', '', item)));
   const foot = el('div', 'profile-dialog-bottom');
   const info = el('div');
-  info.append(el('strong', '', `${formatRand(helper.rate)}/hr`), el('small', '', `Sample rate · ${helper.schedule}`));
+  info.append(el('strong', '', `${formatRand(helper.rate)}/hr`), el('small', '', `${helper.isLive ? 'Indicative rate' : 'Sample rate'} · ${helper.schedule}`));
   foot.append(info, actionButton('Request this helper ↗', () => selectHelper(helper.id), 'button button-dark'));
-  const notice = el('p', 'profile-disclaimer', 'Fictional demonstration profile. No screening, credential checks, availability checks or actual provider listing is implied.');
+  const notice = el('p', 'profile-disclaimer', helper.isLive ? 'Public listing approved by the marketplace team. Approval does not guarantee vetting, background checks, qualifications or availability.' : 'Fictional demonstration profile. No screening, credential checks, availability checks or actual provider listing is implied.');
   dialogContent.append(head, bio, listTitle, list, foot, notice);
   helperDialog.showModal();
 }
 $('#close-helper').addEventListener('click', () => helperDialog.close());
 helperDialog.addEventListener('click', event => { if (event.target === helperDialog) helperDialog.close(); });
 function selectHelper(id) {
-  const helper = SAMPLE_HELPERS.find(item => item.id === id);
+  const helper = directoryHelpers.find(item => item.id === id);
   if (!helper) return;
   selectedHelper = helper;
   bookingService.value = helper.service;
@@ -142,7 +145,7 @@ function selectHelper(id) {
 }
 function updateSelectedHelper() {
   $('#selected-provider').hidden = !selectedHelper;
-  $('#selected-provider-name').textContent = selectedHelper ? `Requesting ${selectedHelper.name} · ${selectedHelper.service} (demo profile)` : '';
+  $('#selected-provider-name').textContent = selectedHelper ? `Requesting ${selectedHelper.name} · ${selectedHelper.service}${selectedHelper.isLive ? '' : ' (demo profile)'}` : '';
 }
 $('#clear-provider').addEventListener('click', () => { selectedHelper = null; updateSelectedHelper(); });
 bookingService.addEventListener('change', () => {
@@ -178,6 +181,7 @@ joinForm.addEventListener('submit', event => {
   }
   const rate = Number($('#join-rate').value);
   if (!Number.isFinite(rate) || rate < 1 || rate > 100000) {joinError.textContent='Enter a valid hourly rate.'; joinError.hidden=false; $('#join-rate').focus(); return;}
+  if (window.AuntieUncleLive?.operational) { window.dispatchEvent(new CustomEvent('auntie:join')); return; }
   const details = $('#join-preview-content');
   details.replaceChildren();
   details.append(el('h3', '', $('#join-name').value.trim()), el('p', 'helper-service', $('#join-service').value), el('p', '', `📍 ${$('#join-area').value.trim()}`), el('p', 'preview-rate', `${formatRand(rate)}/hr · self-proposed example rate`), el('p', '', $('#join-bio').value.trim()));
@@ -253,6 +257,7 @@ enquiryForm.addEventListener('submit', event => {
   if (dateInput.value && dateInput.value < todayLocal()) {markInvalid(dateInput, 'Choose today or a future date.');return;}
   const hours = $('#booking-hours');
   if (hours.value && (!hours.checkValidity() || Number(hours.value) <= 0)) {markInvalid(hours, 'Enter a valid number of hours between 1 and 24, in half-hour increments.');return;}
+  if (window.AuntieUncleLive?.operational) { window.dispatchEvent(new CustomEvent('auntie:book')); return; }
   preparedMessage = makeRequest();
   preview.textContent = preparedMessage;
   enquiryForm.hidden = true;
@@ -278,3 +283,9 @@ $('#copy-request').addEventListener('click', async () => {
 });
 $('#edit-request').addEventListener('click', () => {result.hidden = true; enquiryForm.hidden = false; bookingService.focus();});
 $('#year').textContent = String(new Date().getFullYear());
+
+// Called only after the backend successfully reads the approved-helper directory.
+window.AuntieDirectory = {
+  useLive(rows) { directoryHelpers = rows; usingLiveDirectory = true; selectedHelper = null; updateSelectedHelper(); renderHelpers(); },
+  selected() { return selectedHelper; }
+};

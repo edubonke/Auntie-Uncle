@@ -61,3 +61,19 @@
 @media(max-width:1100px){.helper-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.join-layout{gap:40px}}
 @media(max-width:870px){.market-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}.helper-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.join-layout{grid-template-columns:1fr}.request-demo{grid-template-columns:1fr}.request-demo-actions{border-left:0;border-top:1px solid #d9e1d7}}
 @media(max-width:650px){.market-toolbar{grid-template-columns:1fr;padding:16px}.market-summary{align-items:flex-start;flex-direction:column;gap:3px}.helper-grid{grid-template-columns:1fr}.helper-card{padding:18px}.helper-card-header{margin-bottom:9px}.helper-tagline{min-height:0}.helper-meta{padding-bottom:15px}.helper-dialog{padding:9px}.helper-dialog-shell{padding:20px}.avatar-large{width:75px;height:75px}.profile-dialog-head{gap:12px}.profile-dialog-intro h2{font-size:30px}.profile-dialog-bottom{flex-direction:column;align-items:stretch}.profile-dialog-bottom .button{width:100%}.join-card{padding:21px 16px}.request-demo-info,.request-demo-actions{padding:22px}.form-title{align-items:flex-start}.form-title h3{font-size:22px}.demo-label{align-items:flex-start}.demo-label .demo-dot{margin-top:5px}}
+/* Authenticated marketplace progressive-enhancement panels */
+.account-layout {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1.2rem;margin:1.7rem 0 0}
+.account-box {background:#f8f4ed;border:1px solid #dcd4c7;border-radius:16px;padding:clamp(1.1rem,3vw,2rem);min-width:0}
+.account-box h3 {margin:.5rem 0 1rem;font-size:1.25rem}
+.account-box .field {margin-bottom:1rem}
+.account-box .field input,.account-box .field select {width:100%}
+.account-box .booking-list {display:grid;gap:.75rem;margin:1rem 0 1.5rem}
+.account-actions {display:flex;flex-wrap:wrap;gap:.5rem;margin:.9rem 0}
+.booking-item {padding:1rem;border:1px solid #dcd4c7;border-radius:12px;background:#fff}
+.booking-item .booking-meta {font-size:.88rem;color:#495448;margin:.25rem 0}
+.booking-item .booking-description {white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.4}
+.booking-item .button-small {margin:.6rem .45rem 0 0}
+.button-small {padding:.55rem .8rem;font-size:.87rem}
+#admin-panel {margin-top:1.25rem}
+#live-status[data-error="true"] {color:#a32020;font-weight:700}
+@media(max-width:760px){.account-layout{grid-template-columns:1fr}}

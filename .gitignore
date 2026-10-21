@@ -1,0 +1,9 @@
+# Supabase CLI local ephemeral state and secrets
+supabase/.temp/
+supabase/.branches/
+.env
+.env.*
+!.env.example
+node_modules/
+_site/
+.DS_Store

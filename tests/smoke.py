@@ -28,7 +28,7 @@ async def run():
         assert await page.locator('.service-card').count() == 6
         assert await page.locator('.helper-card').count() == 8
         assert 'fictional helper profiles' in (await page.locator('.market-summary').inner_text())
-        assert 'Interactive prototype' in (await page.locator('.demo-label').inner_text())
+        assert 'Marketplace status:' in (await page.locator('.demo-label').inner_text())
         await page.locator('[data-filter="family"]').click()
         assert await page.locator('.service-card:visible').count() == 2
         await page.locator('[data-filter="all"]').click()
