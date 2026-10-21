@@ -179,6 +179,13 @@ joinForm.addEventListener('submit', event => {
       return;
     }
   }
+  const bio = $('#join-bio').value.trim();
+  if (bio.length < 10) {
+    joinError.textContent = 'Please describe your service in at least 10 characters before submitting your application.';
+    joinError.hidden = false;
+    $('#join-bio').focus();
+    return;
+  }
   const rate = Number($('#join-rate').value);
   if (!Number.isFinite(rate) || rate < 1 || rate > 100000) {joinError.textContent='Enter a valid hourly rate.'; joinError.hidden=false; $('#join-rate').focus(); return;}
   if (window.AuntieUncleLive?.operational) { window.dispatchEvent(new CustomEvent('auntie:join')); return; }
