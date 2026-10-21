@@ -1,6 +1,25 @@
 /* Auntie & Uncle Phase 5B — bounded, manually approved recurring requests.
  * Database RPCs own all authorisation, date validation and atomic writes.
  * Absence of migration hides new actions; earlier phases remain unaffected. */
+const recurringDateText = date => date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
+export function recurringDates(start,kind,quantity){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(start))return [];
+  const [y,m,d]=start.split('-').map(Number);
+  const result=[];
+  for(let i=0;i<quantity;i++){
+    let date;
+    if(kind==='Weekly'||kind==='Fortnightly'){
+      date=new Date(y,m-1,d+i*(kind==='Weekly'?7:14),12);
+    }else{
+      const first=new Date(y,m-1+i,1,12);
+      const max=new Date(first.getFullYear(),first.getMonth()+1,0,12).getDate();
+      date=new Date(first.getFullYear(),first.getMonth(),Math.min(d,max),12);
+    }
+    result.push(recurringDateText(date));
+}
+  return result;
+  }
+
 export function createPhase5B({supabase,currentUser,selectedHelper,customerBookings,helperBookings,feedback,refreshAccount}) {
   const $=selector=>document.querySelector(selector);
   const make=(tag,text='',klass='')=>{
@@ -12,29 +31,14 @@ export function createPhase5B({supabase,currentUser,selectedHelper,customerBooki
   const preview=$('#phase5b-preview'),setup=$('#phase5b-setup-note');
   let ready=false,loadedUser=null,pendingKey=null;
   const pad=n=>String(n).padStart(2,'0');
+  const ymd=recurringDateText;
   const todaySAST=()=>{
     const parts=new Intl.DateTimeFormat('en-GB',{year:'numeric',month:'2-digit',day:'2-digit',timeZone:'Africa/Johannesburg'}).formatToParts(new Date());
     const fields=Object.fromEntries(parts.map(p=>[p.type,p.value]));
     return fields.year+'-'+fields.month+'-'+fields.day;
   };
-  const ymd=date=>date.getFullYear()+'-'+pad(date.getMonth()+1)+'-'+pad(date.getDate());
-  function recurrenceDates(start,kind,quantity){
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(start))return [];
-    const [y,m,d]=start.split('-').map(Number);
-    const result=[];
-    for(let i=0;i<quantity;i++){
-      let date;
-      if(kind==='Weekly'||kind==='Fortnightly'){
-        date=new Date(y,m-1,d+i*(kind==='Weekly'?7:14),12);
-      }else{
-        const first=new Date(y,m-1+i,1,12);
-        const max=new Date(first.getFullYear(),first.getMonth()+1,0,12).getDate();
-        date=new Date(first.getFullYear(),first.getMonth(),Math.min(d,max),12);
-      }
-      result.push(ymd(date));
-    }
-    return result;
-  }
+
+  const recurrenceDates=recurringDates;
   const minutes=str=>{
     const m=/^(\d{2}):(\d{2})/.exec(str||'');
     return m?Number(m[1])*60+Number(m[2]):NaN;
