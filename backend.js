@@ -4,6 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.0';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './supabase-config.js';
 import { createPhase4 } from './phase4.js';
 import { createPhase5 } from './phase5.js';
+import { createPhase5B } from './phase5b.js';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {persistSession: true, autoRefreshToken: true, detectSessionInUrl: true}
@@ -103,7 +104,7 @@ let activeDashboard = 'customer';
 let adminEnabled = false;
 let currentHelper = null;
 let customerRows = [], providerRows = [], adminHelperRows = [], adminBookingRows = [];
-const BOOKING_COLUMNS = 'id,service,frequency,area,preferred_date,preferred_time,estimated_hours,details,status,created_at';
+const BOOKING_COLUMNS = 'id,service,frequency,area,preferred_date,preferred_time,estimated_hours,details,status,created_at,series_id,series_occurrence_no';
 const statusLabel = value => ({pending:'Pending',approved:'Approved',accepted:'Accepted',declined:'Declined',cancelled:'Cancelled',rejected:'Rejected',suspended:'Suspended'})[value] || 'Unknown';
 const briefDate = value => value ? new Date(value + 'T12:00:00').toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'}) : 'Date not provided';
 const money = value => 'R' + Number(value).toLocaleString('en-ZA',{minimumFractionDigits:0,maximumFractionDigits:2});
@@ -117,6 +118,10 @@ const phase5 = createPhase5({supabase,currentUser:()=>user,
     renderBookingList('#customer-bookings',customerRows,'customer');
     renderBookingList('#provider-bookings',providerRows,'helper');
   }});
+const phase5b = createPhase5B({supabase,currentUser:()=>user,
+  selectedHelper:()=>window.AuntieDirectory?.selected(),
+  customerBookings:()=>customerRows,helperBookings:()=>({active:Boolean(currentHelper),rows:providerRows}),
+  feedback:notice,refreshAccount:()=>refreshAccount()});
 function summaryCard(label, number, note) {
   const item=elt('div','','stat-card');
   item.append(elt('span',label,'stat-label'),elt('strong',String(number),'stat-number'),elt('span',note,'stat-note'));
@@ -208,6 +213,7 @@ function renderBookingList(selector, rows, view) {
         notice('Booking request cancelled.');await refreshAccount();
       }));
     }
+    if(row.series_id)card.append(elt('p','Recurring visit '+(row.series_occurrence_no??'?')+' · Each date is decided separately.','phase5b-visit-tag'));
     phase5.enhanceBookingCard(card,row,view);
     root.append(card);
   }
@@ -336,6 +342,7 @@ async function refreshAccount() {
       switchDashboard('customer');
       phase4.reset();
       phase5.reset();
+      phase5b.reset();
       return;
     }
     $('#account-user').textContent=user.email||'Signed-in member';
@@ -363,6 +370,7 @@ async function refreshAccount() {
     switchDashboard(activeDashboard==='admin'&&!adminEnabled?'customer':activeDashboard);
     await phase4.refresh();
     await phase5.refresh();
+    await phase5b.refresh();
   }catch(error){console.warn('[Auntie & Uncle] Dashboard refresh failed:',error?.code||'unexpected');notice('Unable to refresh your account. Try again.');}
   finally{refreshing=false;}
 }
@@ -439,6 +447,18 @@ window.addEventListener('auntie:book',async e=>{
     }
     const scheduleCheck=await phase5.checkBeforeBooking(selected);
     if(!scheduleCheck.ok){inlineError('#form-error',scheduleCheck.message);return;}
+    if(phase5b.isRecurring()){
+      const created=await phase5b.create();
+      if(!created.ok){inlineError('#form-error',created.message);return;}
+      $('#enquiry-form').hidden=true;$('#request-result').hidden=false;
+      $('#request-result h3').textContent='Recurring visit requests sent';
+      $('#request-result > p').textContent='Your '+created.count+' appointment requests were created as Pending. Each visit requires separate helper acceptance; no payments were taken.';
+      $('#request-preview').textContent='Series reference: '+created.id+'\nProposed visits:\n'+created.dates.map((d,i)=>(i+1)+'. '+d).join('\n');
+      $('#copy-request').hidden=true;$('#whatsapp-request').hidden=true;
+      $('#copy-status').textContent='Manage all visits in My account → My bookings.';
+      await refreshAccount();
+      return;
+    }
     const payload={helper_id:selected.id,service:formValue('service'),frequency:formValue('frequency'),
       area:formValue('area'),preferred_date:formValue('date'),preferred_time:formValue('booking-time')||null,
       estimated_hours:formValue('booking-hours')?Number(formValue('booking-hours')):null,details:formValue('details')};
