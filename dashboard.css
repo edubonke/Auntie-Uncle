@@ -1,0 +1,51 @@
+/* Auntie & Uncle | Phase 3 authenticated workspace */
+.account-layout.dashboard-open{display:block}
+.account-layout.dashboard-open .account-workspace{width:100%}
+.account-layout.dashboard-open .account-info{margin-top:18px;max-width:none;padding:20px 24px}
+.account-workspace{padding:clamp(18px,3vw,32px)}
+.workspace-intro{display:flex;gap:20px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;margin-bottom:22px}
+.workspace-intro h3{font-family:Georgia,serif;font-size:clamp(1.75rem,3vw,2.4rem);font-weight:500;letter-spacing:-.04em;margin:6px 0 5px}
+.workspace-email{color:var(--muted);font-size:.86rem;margin:0;overflow-wrap:anywhere}
+.workspace-intro .account-actions{display:flex;gap:10px;flex-wrap:wrap}
+.dashboard-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 24px}
+.stat-card{background:#f4f7f1;border:1px solid #dce6da;border-radius:12px;padding:15px 17px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.stat-label{color:#546655;font-size:.73rem;font-weight:750;letter-spacing:.045em;text-transform:uppercase}
+.stat-number{font-size:clamp(1.65rem,3vw,2.35rem);line-height:1.2;font-weight:780;letter-spacing:-.04em}
+.stat-note{color:#59695f;font-size:.77rem;line-height:1.45}
+.dashboard-tabs{display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:12px;margin:0 0 22px}
+.dashboard-tabs button{border:1px solid #cbd6cc;border-radius:100px;padding:9px 16px;background:transparent;color:#324b39;font-size:.84rem;font-weight:730}
+.dashboard-tabs button[aria-selected="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.dashboard-tabs button:not([aria-selected="true"]):hover{background:#e7ede7}
+.dashboard-panel{min-height:215px}
+.dashboard-panel[hidden],.dashboard-tabs button[hidden],.helper-profile-form[hidden],.helper-profile-panel[hidden]{display:none!important}
+.dashboard-panel-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:16px}
+.dashboard-panel h3{font-family:Georgia,serif;font-size:1.7rem;letter-spacing:-.04em;font-weight:500;margin:0}
+.dashboard-panel h4{font-size:1.13rem;margin:0 0 6px}
+.dashboard-panel-heading p{color:var(--muted);font-size:.85rem;line-height:1.55;margin:2px 0 0;max-width:620px}
+.dashboard-filter{font-size:.82rem;color:var(--muted);display:flex;align-items:center;gap:8px;white-space:nowrap}
+.dashboard-filter select{border:1px solid #cad7ce;color:var(--ink);background:white;min-width:135px;padding:9px 12px;border-radius:7px;font-weight:650}
+.booking-list{display:grid;gap:12px;margin-bottom:17px}
+.booking-card{border:1px solid #d9e0d8;background:#fff;border-radius:12px;padding:18px 20px}
+.booking-topline{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+.booking-topline strong{font-size:1rem;font-weight:780}
+.booking-meta{font-size:.81rem;color:#526452;margin:10px 0}
+.booking-description{overflow-wrap:anywhere;white-space:pre-wrap;margin:8px 0 10px;font-size:.91rem}
+.booking-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.status-chip{display:inline-flex;align-items:center;padding:4px 12px;border-radius:50px;border:1px solid #d9ddd5;background:#f0f2ee;color:#354d3a;font-size:.74rem;font-weight:800;letter-spacing:.02em;text-transform:capitalize}
+.status-chip.status-accepted,.status-chip.status-approved{background:#e2f2e2;color:#214e2c;border-color:#9dc9a7}
+.status-chip.status-pending{background:#fff2d5;color:#714917;border-color:#eecf88}
+.status-chip.status-cancelled,.status-chip.status-declined,.status-chip.status-rejected,.status-chip.status-suspended{background:#f7e9e6;color:#7d3333;border-color:#e9c6c0}
+.empty-state{background:#fff;border:1px dashed #bfcdc1;padding:26px;border-radius:12px;color:#526653;font-size:.91rem}
+.dashboard-link{display:inline-flex;margin-top:6px;text-decoration:none;font-size:.85rem}
+.helper-profile-panel{border:1px solid #dce1d7;background:#f8faf6;padding:22px;border-radius:12px;margin-bottom:26px}
+.helper-profile-form{border-top:1px solid var(--line);padding-top:20px}
+.helper-profile-form .form-grid{margin-bottom:18px}
+.admin-sections{display:grid;gap:26px;margin-top:24px}
+.admin-sections section+section{border-top:1px solid var(--line);padding-top:24px}
+.admin-compact-row{border:1px solid #dce0d8;border-radius:10px;background:#fff;padding:15px 18px}
+.admin-compact-row p{margin:6px 0 0}
+.admin-compact-row button{margin-top:11px}
+#dashboard-feedback:not(:empty){margin:18px 0 0;padding:10px 14px;background:#eaf2e8;border-radius:8px;color:#32503c}
+@media (max-width:800px){.dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.workspace-intro{align-items:flex-start}}
+@media (max-width:560px){.account-workspace{padding:17px 14px}.dashboard-stats{gap:8px}.stat-card{padding:12px}.stat-number{font-size:1.6rem}.dashboard-tabs button{padding:8px 11px;font-size:.78rem}.booking-card{padding:14px}.dashboard-panel-heading{display:block}.dashboard-filter{margin-top:12px}.dashboard-panel h3{font-size:1.5rem}.helper-profile-panel{padding:15px}}
+@media (prefers-reduced-motion:reduce){.dashboard-tabs button{transition:none}}

@@ -22,7 +22,7 @@ jobs:
       - name: Assemble public site only
         run: |
           mkdir _site
-          cp index.html styles.css app.js backend.js supabase-config.js favicon.svg _site/
+          cp index.html styles.css dashboard.css app.js backend.js supabase-config.js favicon.svg _site/
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload site
