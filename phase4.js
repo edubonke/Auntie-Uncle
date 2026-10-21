@@ -63,7 +63,7 @@ export function createPhase4({supabase,currentUser,currentHelper,selectedHelper,
     if(!helper){cal.hidden=true;currentHelperId=null;blocks=new Map();return;}
     currentHelperId=helper.id;cal.hidden=false;
     const y=month.getFullYear(),m=month.getMonth();
-    const first=isoDay(y,m,1),next=isoDay(y,m+1,1); // month+1 accepted by isoDay? see below
+    const first=isoDay(y,m,1);
     const nextMonth=new Date(y,m+1,1);
     const nextStart=isoDay(nextMonth.getFullYear(),nextMonth.getMonth(),1);
     const {data,error}=await supabase.from('helper_unavailable_dates')
