@@ -1,7 +1,7 @@
 /* Auntie & Uncle Phase 5A: booking slots and helper-approved reschedules.
    Optional enhancement: Phase 3/4 continue working until SQL migration is applied.
    Privacy and overlap enforcement MUST remain in Supabase, not this module. */
-export function createPhase5({supabase,currentUser,selectedHelper,feedback,refreshAccount,redrawBookings}) {
+export function createPhase5({supabase,currentUser,selectedHelper,dayAvailability,feedback,refreshAccount,redrawBookings}) {
   const $=s=>document.querySelector(s);
   const el=(tag,text='',cls='')=>{const node=document.createElement(tag);node.textContent=String(text);if(cls)node.className=cls;return node;};
   const picker=$('#phase5-time-slots'),options=$('#phase5-slot-options');
@@ -56,6 +56,9 @@ export function createPhase5({supabase,currentUser,selectedHelper,feedback,refre
     const length=Math.round(hours*60);
     picker.hidden=false;info.textContent='Loading accepted bookings for this date…';
     try{
+      const dayOk=await dayAvailability(selected.id,date);
+      if(request!==queryToken)return;
+      if(dayOk===false){options.replaceChildren();info.textContent='This helper has blocked the entire date. Please choose another day.';return;}
       const intervals=await fetchBusy(selected.id,date);
       if(request!==queryToken)return;
       busy=intervals;busyKey=selected.id+':'+date;
@@ -100,6 +103,7 @@ export function createPhase5({supabase,currentUser,selectedHelper,feedback,refre
         return;
       }
       ready=true;checkedUser=u.id;setup.hidden=true;
+      $('#enquiry-note').textContent='Times are in SAST. Booking requests require helper acceptance. Frequency describes a preference only: repeated appointments are NOT created automatically. Prices must be agreed directly.';
       const {data,error}=await supabase.from('booking_reschedule_requests')
         .select('id,booking_id,proposed_date,proposed_time,proposed_hours,reason,status,created_at')
         .order('created_at',{ascending:false}).limit(100);
@@ -130,7 +134,9 @@ export function createPhase5({supabase,currentUser,selectedHelper,feedback,refre
     if(date===formatDateSA()&&start<=nowMinutesSA())
       return {ok:false,message:'Choose a future start time.'};
     try{
-      const intervals=busyKey===helper.id+':'+date?busy:await fetchBusy(helper.id,date);
+      if(await dayAvailability(helper.id,date)===false)
+        return {ok:false,message:'The helper has blocked the entire date. Choose another day.'};
+      const intervals=await fetchBusy(helper.id,date);
       if(isBooked(start,start+h*60,intervals))
         return {ok:false,message:'This time overlaps an accepted booking. Choose another slot.'};
     }catch{
