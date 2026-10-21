@@ -11,6 +11,10 @@ A responsive, two-sided South African marketplace website for households and ind
 - Not implemented: payments, verification/background checks, full platform terms and privacy policy, document uploads, chat, availability and scheduling conflicts, fees, reviews, service guarantee, production monitoring, safeguarding workflows for childcare.
 - Public listing approval is an internal administrative decision, **not proof of ID, qualification or background checks**.
 
+## Phase 4 optional extension
+
+Availability calendar and private in-app updates require an **additional SQL migration**. Follow [the browser-only Phase 4 setup and test guide](PHASE4_SETUP.md). The site retains its existing booking flow until the migration is applied.
+
 ## Public Supabase client configuration
 
 `supabase-config.js` contains only the **project URL** and **publishable key**. Both are intended to be embedded in browser apps. Never commit the database password, a service-role key, a secret key, a Supabase Personal Access Token or provider ID documents.

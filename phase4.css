@@ -1,0 +1,27 @@
+/* Phase 4: restrained extension of existing workspace components. */
+.phase4-updates,.phase4-calendar{border:1px solid #d6e2d4;background:#f8faf6;border-radius:12px;padding:20px;margin:18px 0 25px}
+.phase4-updates .dashboard-panel-heading h4,.phase4-calendar h4{font-weight:750;font-size:1.13rem;margin:0}
+.phase4-updates .dashboard-panel-heading p,.phase4-calendar .dashboard-panel-heading p{font-size:.85rem;color:var(--muted);margin:5px 0}
+.phase4-updates-list{display:grid;gap:9px;max-height:360px;overflow:auto}
+.phase4-update{background:#fff;border:1px solid #dbe1db;border-radius:9px;padding:12px 15px}
+.phase4-update.phase4-unread{border-left:4px solid #64826b;background:#f3f8f1}
+.phase4-update strong{font-size:.9rem}
+.phase4-update p{margin:5px 0;font-size:.84rem;color:#425647}
+.phase4-timestamp{font-size:.72rem;color:#68776b}
+#phase4-unread-label{color:#516c58;font-size:.78rem;font-weight:600}
+.phase4-calendar .booking-actions{margin:0;align-items:center}
+#phase4-month-label{min-width:150px;text-align:center;font-size:.91rem;font-weight:800}
+.phase4-weekdays,.phase4-day-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.phase4-weekdays{margin-top:12px}
+.phase4-weekdays span{text-align:center;color:#586d5c;font-size:.74rem;font-weight:780;padding:8px 0}
+.phase4-date{border:1px solid #cedcce;border-radius:8px;background:#fff;padding:10px 2px;min-height:46px;color:#254331;font-size:.91rem;font-weight:650;position:relative}
+.phase4-date:not(:disabled):hover{background:#e3ede2;border-color:#5f8867}
+.phase4-date.phase4-blocked{background:#f2dedb;color:#7b3935;border-color:#e2a7a2}
+.phase4-date.phase4-blocked::after{content:"×";font-size:.67rem;position:absolute;right:7px;top:3px;color:#973d34}
+.phase4-date:disabled{opacity:.32;cursor:not-allowed}
+.phase4-blank{display:block}
+#phase4-calendar-feedback:not(:empty){padding-top:12px}
+#phase4-booking-availability{padding:10px 14px;margin-bottom:15px;border-radius:8px;background:#eaf1e8;color:#355240}
+#phase4-booking-availability[data-blocked="true"]{background:#fae9e5;color:#873b37}
+#phase4-setup-note{padding:10px 12px;border-radius:7px;background:#fdf3e2;color:#6e501e}
+@media(max-width:640px){.phase4-updates,.phase4-calendar{padding:14px}.phase4-weekdays,.phase4-day-grid{gap:3px}.phase4-date{min-height:41px;padding:7px 0}.phase4-calendar .booking-actions{margin-top:9px}#phase4-month-label{min-width:110px;font-size:.84rem}}
