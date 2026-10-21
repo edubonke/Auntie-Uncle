@@ -17,6 +17,7 @@ jobs:
         run: |
           node --check app.js
           node --check backend.js
+          node --check phase4.js
           node --check supabase-config.js
       - name: Dashboard source contracts
-        run: node --test tests/phase3.test.mjs
+        run: node --test tests/phase3.test.mjs tests/phase4.test.mjs
