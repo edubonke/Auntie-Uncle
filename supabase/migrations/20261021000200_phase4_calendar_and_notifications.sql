@@ -130,7 +130,8 @@ begin
     from private.marketplace_admins a;
   end if;
 
-  if tg_op='UPDATE' and new.status is distinct from old.status then
+  if tg_op='UPDATE' then
+   if new.status is distinct from old.status then
     if new.status='approved' then
       insert into public.account_notifications(user_id,kind,title,body)
       values(new.owner_id,'helper_approved','Helper listing approved',
@@ -148,10 +149,11 @@ begin
       values(new.owner_id,'helper_pending','Profile awaiting review',
              'Your profile is awaiting administrator review.');
     end if;
+   end if;
   end if;
   return null;
 end;
-$$;
+$;
 revoke all on function public.notify_helper_review() from public, anon, authenticated;
 create trigger helper_activity_notification
 after insert or update of status on public.helper_profiles
