@@ -168,12 +168,13 @@ export function createPhase5B({supabase,currentUser,selectedHelper,customerBooki
       return;
     }
     ready=true;loadedUser=user.id;panel.hidden=false;setup.hidden=true;
+    $('#enquiry-note').textContent='Times are SAST. Single booking frequency is descriptive; enable Recurring service requests to create individually approved visits. No payment is taken.';
     const {data,error}=await supabase.from('recurring_booking_series')
       .select('id,customer_id,helper_id,service,area,cadence,occurrence_count,first_date,start_time,status,created_at')
       .order('created_at',{ascending:false}).limit(60);
     if(error){feedback('Could not load recurring series.');return;}
     const series=data??[],customer=series.filter(s=>s.customer_id===user.id),
-      helper=series.filter(s=>s.customer_id!==user.id);
+      asHelper=helperBookings(),helper=series.filter(s=>s.helper_id===asHelper.helperId && s.customer_id!==user.id);
     // Read only series links + statuses, subject to the existing booking RLS.
     // The legacy booking queries stay schema-compatible before migration.
     let occurrenceRows=[];
@@ -186,7 +187,6 @@ export function createPhase5B({supabase,currentUser,selectedHelper,customerBooki
     }
     $('#phase5b-customer-series').hidden=false;
     renderSeries($('#phase5b-customer-series-list'),customer,occurrenceRows,true);
-    const asHelper=helperBookings();
     $('#phase5b-helper-series').hidden=!asHelper.active;
     if(asHelper.active)renderSeries($('#phase5b-helper-series-list'),helper,occurrenceRows,false);
     updatePreview();
