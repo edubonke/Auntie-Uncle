@@ -172,19 +172,18 @@ joinForm.addEventListener('submit', event => {
   const required = ['join-name','join-service','join-area','join-rate','join-bio'];
   for (const id of required) {
     const input = document.getElementById(id);
+    if (id === 'join-bio' && input.value.trim().length < 10) {
+      joinError.textContent = 'Please describe your service in at least 10 characters before submitting your application.';
+      joinError.hidden = false;
+      input.focus();
+      return;
+    }
     if (!input.value.trim() || !input.checkValidity()) {
       joinError.textContent = 'Complete every field using a valid value to preview your profile.';
       joinError.hidden = false;
       input.focus();
       return;
     }
-  }
-  const bio = $('#join-bio').value.trim();
-  if (bio.length < 10) {
-    joinError.textContent = 'Please describe your service in at least 10 characters before submitting your application.';
-    joinError.hidden = false;
-    $('#join-bio').focus();
-    return;
   }
   const rate = Number($('#join-rate').value);
   if (!Number.isFinite(rate) || rate < 1 || rate > 100000) {joinError.textContent='Enter a valid hourly rate.'; joinError.hidden=false; $('#join-rate').focus(); return;}
