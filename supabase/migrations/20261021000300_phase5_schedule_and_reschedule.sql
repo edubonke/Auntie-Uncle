@@ -83,10 +83,10 @@ begin
       raise exception 'Helper unavailable on selected date' using errcode='P0001';
     end if;
     if new.slot_start_at is not null and exists(
-      select 1 from public.bookings other
-      where other.helper_id=new.helper_id and other.id<>new.id and other.status='accepted'
-      and other.slot_start_at is not null and
-        tstzrange(other.slot_start_at,other.slot_end_at,'[)') &&
+      select 1 from public.bookings existing_booking
+      where existing_booking.helper_id=new.helper_id and existing_booking.id<>new.id and existing_booking.status='accepted'
+      and existing_booking.slot_start_at is not null and
+        tstzrange(existing_booking.slot_start_at,existing_booking.slot_end_at,'[)') &&
         tstzrange(new.slot_start_at,new.slot_end_at,'[)')
     ) then
       raise exception 'This time slot is already booked' using errcode='P0001';
