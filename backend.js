@@ -34,6 +34,35 @@ function safeError(error) {
   return error?.message === 'Invalid login credentials' ? 'Incorrect email or password.' :
     'The request could not be completed. Please try again or contact the platform administrator.';
 }
+
+// Translate only known authentication errors; do not expose raw server messages
+// or reveal whether a particular email address is already registered.
+function safeAuthError(error) {
+  const code = String(error?.code || '').toLowerCase();
+  const message = String(error?.message || '').toLowerCase();
+  if (code === 'email_address_not_authorized' || message.includes('email address not authorized'))
+    return 'This email address cannot receive a confirmation email through the current Supabase email provider. The administrator must configure custom SMTP before public registration.';
+  if (code === 'over_email_send_rate_limit' || message.includes('email rate limit exceeded'))
+    return 'Supabase has reached its email sending limit. Wait before retrying, or ask the administrator to configure custom SMTP.';
+  if (code === 'over_request_rate_limit' || error?.status === 429)
+    return 'Too many registration attempts. Please wait a few minutes before trying again.';
+  if (code === 'email_provider_disabled' || code === 'signup_disabled' || message.includes('signups not allowed'))
+    return 'Email registrations are disabled in Supabase Authentication settings. Please contact the administrator.';
+  if (code === 'email_not_confirmed')
+    return 'Please verify your email before signing in. Check your inbox and spam folder.';
+  if (code === 'weak_password')
+    return 'The password does not meet the security requirements. Please choose a stronger password.';
+  if (code === 'invalid_credentials' || message.includes('invalid login credentials'))
+    return 'Incorrect email or password, or the account is not yet ready to sign in.';
+  if (code === 'email_address_invalid')
+    return 'Please enter a valid email address.';
+  if (code === 'user_already_exists' || code === 'email_exists')
+    return 'If you already have an account, choose Sign in instead of Create an account.';
+  if (error?.name === 'AuthRetryableFetchError' || message.includes('failed to fetch'))
+    return 'Unable to reach Supabase Authentication. Check your internet connection and try again.';
+  const safeCode = /^[a-z][a-z0-9_]{2,63}$/.test(code) ? ' (code: ' + code + ')' : '';
+  return 'Authentication could not be completed' + safeCode + '. Please contact the platform administrator.';
+}
 async function loadDirectory() {
   const {data, error} = await supabase.from('helper_profiles')
     .select('id,display_name,service,area,hourly_rate,years_experience,bio,status')
@@ -179,7 +208,7 @@ $('#account-form').addEventListener('submit', async event => {
     }
     $('#account-password').value='';
     await refreshAccount();
-  } catch(error){inlineError('#account-error',safeError(error));}
+  } catch(error){inlineError('#account-error',safeAuthError(error));}
   finally{button.disabled=false;}
 });
 $('#account-mode').addEventListener('change',()=>{
