@@ -104,7 +104,7 @@ let activeDashboard = 'customer';
 let adminEnabled = false;
 let currentHelper = null;
 let customerRows = [], providerRows = [], adminHelperRows = [], adminBookingRows = [];
-const BOOKING_COLUMNS = 'id,service,frequency,area,preferred_date,preferred_time,estimated_hours,details,status,created_at,series_id,series_occurrence_no';
+const BOOKING_COLUMNS = 'id,service,frequency,area,preferred_date,preferred_time,estimated_hours,details,status,created_at';
 const statusLabel = value => ({pending:'Pending',approved:'Approved',accepted:'Accepted',declined:'Declined',cancelled:'Cancelled',rejected:'Rejected',suspended:'Suspended'})[value] || 'Unknown';
 const briefDate = value => value ? new Date(value + 'T12:00:00').toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'}) : 'Date not provided';
 const money = value => 'R' + Number(value).toLocaleString('en-ZA',{minimumFractionDigits:0,maximumFractionDigits:2});
@@ -213,7 +213,6 @@ function renderBookingList(selector, rows, view) {
         notice('Booking request cancelled.');await refreshAccount();
       }));
     }
-    if(row.series_id)card.append(elt('p','Recurring visit '+(row.series_occurrence_no??'?')+' · Each date is decided separately.','phase5b-visit-tag'));
     phase5.enhanceBookingCard(card,row,view);
     root.append(card);
   }
