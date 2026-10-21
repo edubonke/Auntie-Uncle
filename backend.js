@@ -313,6 +313,7 @@ async function refreshAccount() {
     const {data:{user:authUser},error}=await supabase.auth.getUser();
     user=error?null:authUser;authenticated=Boolean(user);
     $('#account-anon').hidden=authenticated;$('#account-signed-in').hidden=!authenticated;
+    $('#account .account-layout').classList.toggle('dashboard-open',authenticated);
     if(!authenticated){
       dashboardUserId=null;adminEnabled=false;currentHelper=null;
       customerRows=[];providerRows=[];adminHelperRows=[];adminBookingRows=[];
