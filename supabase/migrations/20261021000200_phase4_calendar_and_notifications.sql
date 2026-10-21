@@ -118,7 +118,12 @@ for each row execute function public.notify_booking_change();
 create or replace function public.notify_helper_review()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
-  if tg_op='INSERT' or (new.status='pending' and old.status is distinct from new.status) then
+  if tg_op='INSERT' then
+    insert into public.account_notifications(user_id,kind,title,body)
+    select a.user_id,'helper_pending','Helper application to review',
+      'A helper application is awaiting review in Administration.'
+    from private.marketplace_admins a;
+  elsif new.status='pending' and old.status is distinct from new.status then
     insert into public.account_notifications(user_id,kind,title,body)
     select a.user_id,'helper_pending','Helper application to review',
       'A helper application is awaiting review in Administration.'
