@@ -120,7 +120,7 @@ const phase5 = createPhase5({supabase,currentUser:()=>user,
   }});
 const phase5b = createPhase5B({supabase,currentUser:()=>user,
   selectedHelper:()=>window.AuntieDirectory?.selected(),
-  customerBookings:()=>customerRows,helperBookings:()=>({active:Boolean(currentHelper),rows:providerRows}),
+  customerBookings:()=>customerRows,helperBookings:()=>({active:Boolean(currentHelper),helperId:currentHelper?.id,rows:providerRows}),
   feedback:notice,refreshAccount:()=>refreshAccount()});
 function summaryCard(label, number, note) {
   const item=elt('div','','stat-card');
