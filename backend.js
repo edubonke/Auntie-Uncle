@@ -2,6 +2,7 @@
    The publishable key is safe in the browser; all authorization is enforced by PostgreSQL RLS. */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.0';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './supabase-config.js';
+import { createPhase4 } from './phase4.js';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {persistSession: true, autoRefreshToken: true, detectSessionInUrl: true}
@@ -31,7 +32,8 @@ const inlineError = (selector, message) => {
 };
 function safeError(error) {
   console.warn('[Auntie & Uncle] Backend request failed:', error?.code || 'unknown');
-  return error?.message === 'Invalid login credentials' ? 'Incorrect email or password.' :
+  return error?.message === 'Helper unavailable on selected date' ? 'This helper has blocked the selected date. Please choose another day.' :
+    error?.message === 'Invalid login credentials' ? 'Incorrect email or password.' :
     'The request could not be completed. Please try again or contact the platform administrator.';
 }
 
@@ -104,6 +106,8 @@ const statusLabel = value => ({pending:'Pending',approved:'Approved',accepted:'A
 const briefDate = value => value ? new Date(value + 'T12:00:00').toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'}) : 'Date not provided';
 const money = value => 'R' + Number(value).toLocaleString('en-ZA',{minimumFractionDigits:0,maximumFractionDigits:2});
 const notice = message => {$('#dashboard-feedback').textContent=message;};
+const phase4 = createPhase4({supabase,currentUser:()=>user,currentHelper:()=>currentHelper,
+  selectedHelper:()=>window.AuntieDirectory?.selected(),feedback:notice});
 function summaryCard(label, number, note) {
   const item=elt('div','','stat-card');
   item.append(elt('span',label,'stat-label'),elt('strong',String(number),'stat-number'),elt('span',note,'stat-note'));
@@ -320,6 +324,7 @@ async function refreshAccount() {
       $('#account-user').textContent='';
       $('#customer-bookings').replaceChildren();$('#provider-bookings').replaceChildren();
       switchDashboard('customer');
+      phase4.reset();
       return;
     }
     $('#account-user').textContent=user.email||'Signed-in member';
@@ -345,6 +350,7 @@ async function refreshAccount() {
     else{adminHelperRows=[];adminBookingRows=[];}
     if(newSession)activeDashboard=adminEnabled?'admin':profile?'helper':'customer';
     switchDashboard(activeDashboard==='admin'&&!adminEnabled?'customer':activeDashboard);
+    await phase4.refresh();
   }catch(error){console.warn('[Auntie & Uncle] Dashboard refresh failed:',error?.code||'unexpected');notice('Unable to refresh your account. Try again.');}
   finally{refreshing=false;}
 }
@@ -415,6 +421,10 @@ window.addEventListener('auntie:book',async e=>{
   if (formValue('details').length<10){inlineError('#form-error','Describe the work in at least 10 characters.');return;}
   const btn=$('#enquiry-form .form-submit');btn.disabled=true;
   try {
+    if(phase4.ready && await phase4.canRequest(selected.id,formValue('date')) === false){
+      inlineError('#form-error','This helper is unavailable on the selected date. Choose another date.');
+      return;
+    }
     const payload={helper_id:selected.id,service:formValue('service'),frequency:formValue('frequency'),
       area:formValue('area'),preferred_date:formValue('date'),preferred_time:formValue('booking-time')||null,
       estimated_hours:formValue('booking-hours')?Number(formValue('booking-hours')):null,details:formValue('details')};
