@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="dashboard.css">
   <link rel="stylesheet" href="phase4.css">
   <link rel="stylesheet" href="phase5.css">
+  <link rel="stylesheet" href="phase5b.css">
   <script src="app.js" defer></script>
   <script type="module" src="backend.js"></script>
 </head>
@@ -160,6 +161,7 @@
             <div class="dashboard-panel-heading"><div><h3>My booking requests</h3><p>Follow up on requests, view their status and cancel where permitted.</p></div>
               <label class="dashboard-filter" for="customer-status-filter">Show <select id="customer-status-filter"><option value="all">All requests</option><option value="pending">Pending</option><option value="accepted">Accepted</option><option value="cancelled">Cancelled</option><option value="declined">Declined</option></select></label>
             </div>
+            <section id="phase5b-customer-series" class="phase5b-series-area" hidden><div class="dashboard-panel-heading"><div><h4>Recurring requests</h4><p>View your series and cancel remaining future appointments if plans change.</p></div></div><div id="phase5b-customer-series-list" class="booking-list" aria-live="polite"></div></section>
             <div id="customer-bookings" class="booking-list" aria-live="polite"></div>
             <a href="#browse" class="button button-dark dashboard-link">Find a helper ↗</a>
           </div>
@@ -196,6 +198,7 @@
             <div class="dashboard-panel-heading"><div><h4>Incoming booking requests</h4><p>Accept or decline pending requests. These are service enquiries, not payments.</p></div>
               <label class="dashboard-filter" for="helper-status-filter">Show <select id="helper-status-filter"><option value="all">All requests</option><option value="pending">Pending</option><option value="accepted">Accepted</option><option value="declined">Declined</option><option value="cancelled">Cancelled</option></select></label>
             </div>
+            <section id="phase5b-helper-series" class="phase5b-series-area" hidden><div class="dashboard-panel-heading"><div><h4>Recurring customer requests</h4><p>Each visit is a separate request. Accept or decline individual dates below.</p></div></div><div id="phase5b-helper-series-list" class="booking-list" aria-live="polite"></div></section>
             <div id="provider-bookings" class="booking-list" aria-live="polite"></div>
           </div>
           <div id="dashboard-admin" class="dashboard-panel" role="tabpanel" aria-labelledby="tab-admin" hidden>
@@ -221,6 +224,15 @@
     <section class="section shell enquire-section" id="enquire" aria-labelledby="enquire-title"><div class="enquiry-panel"><div class="enquiry-intro"><p class="kicker">REQUEST A HELPER</p><h2 id="enquire-title">Make your <em>request.</em></h2><p>Prepare an enquiry addressed to a helper you choose or make an open request. It is not submitted or confirmed in this prototype.</p><div class="enquiry-side-note"><span aria-hidden="true">✳</span><div><b>Talk to the person doing the work</b><p>Each independent helper agrees on availability, the final rate and work details before accepting a booking.</p></div></div></div>
       <div class="form-frame"><form id="enquiry-form" novalidate>
         <div class="selected-provider" id="selected-provider" hidden><span id="selected-provider-name"></span><button id="clear-provider" type="button" aria-label="Remove selected helper">×</button></div><p id="phase4-booking-availability" class="form-small" hidden></p><div class="form-grid"><div class="field"><label for="service">What do you need help with? <span>*</span></label><select id="service" name="service" required><option value="">Choose a service</option><option>Cleaning</option><option>Childcare</option><option>Cooking</option><option>Gardening</option><option>Handyman</option><option>Moving & rearranging</option></select></div><div class="field"><label for="frequency">How often?</label><select id="frequency" name="frequency"><option>One-time help</option><option>Weekly</option><option>Twice a week</option><option>Monthly</option><option>Not sure yet</option></select></div><div class="field"><label for="area">Suburb or area <span>*</span></label><input id="area" name="area" type="text" maxlength="80" autocomplete="address-level2" placeholder="e.g. Randburg" required></div><div class="field"><label for="date">Preferred date</label><input id="date" name="date" type="date"></div><div class="field"><label for="booking-time">Preferred start time</label><input id="booking-time" name="booking-time" type="time"></div><div class="field"><label for="booking-hours">Estimated hours</label><input id="booking-hours" name="booking-hours" type="number" min="1" max="24" step="0.5" placeholder="e.g. 3"></div><div class="field field-full"><label for="details">Tell us a little more <span>*</span></label><textarea id="details" name="details" rows="3" maxlength="650" required placeholder="What needs to be done? Include anything we should know."></textarea></div></div>
+        <section id="phase5b-recurring" class="phase5b-recurring" aria-labelledby="phase5b-heading" hidden>
+          <div class="booking-topline"><h3 id="phase5b-heading">Recurring service requests</h3><span class="status-chip">Limited series</span></div>
+          <label class="phase5b-toggle-label"><input id="phase5b-enable" type="checkbox"> Request a recurring series instead of a single appointment</label>
+          <div id="phase5b-options" hidden><div class="phase5b-options-grid">
+            <label for="phase5b-cadence">How often?<select id="phase5b-cadence"><option value="Weekly">Weekly</option><option value="Fortnightly">Every two weeks</option><option value="Monthly">Monthly</option></select></label>
+            <label for="phase5b-count">Number of visits (2–8)<input id="phase5b-count" type="number" min="2" max="8" step="1" value="4"></label>
+          </div><p class="form-small">Each visit becomes a separate Pending request. The helper must accept every date independently; no payment is collected.</p><div id="phase5b-preview" class="phase5b-preview" aria-live="polite"></div></div>
+        </section>
+        <p id="phase5b-setup-note" class="form-small" hidden>Recurring requests will be available after the Phase 5B migration.</p>
         <section id="phase5-time-slots" class="phase5-slot-section" aria-labelledby="phase5-slots-heading" hidden>
           <div class="booking-topline"><h3 id="phase5-slots-heading">Available appointment times</h3><span class="status-chip">South Africa time (SAST)</span></div>
           <p class="form-small">Choose a suggested start time. Confirm the date and estimated duration first. Times can change before the helper accepts.</p>
