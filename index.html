@@ -10,6 +10,7 @@
   <title>Auntie & Uncle | Find the right helping hand</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="dashboard.css">
   <script src="app.js" defer></script>
   <script type="module" src="backend.js"></script>
 </head>
@@ -136,16 +137,63 @@
             <p class="form-small">Do not use this beta for sensitive documents, government ID numbers or full home addresses. No payments are collected.</p>
           </form>
         </div>
-        <div class="account-box" id="account-signed-in" hidden>
-          <p>Signed in as <strong id="account-user"></strong></p>
-          <div class="account-actions"><button type="button" id="refresh-account" class="button button-outline button-small">Refresh account</button><button type="button" id="sign-out" class="button button-outline button-small">Sign out</button></div>
-          <p id="helper-application-state" class="form-small">Your helper application status will appear here.</p>
-          <h3>My booking requests</h3><div id="customer-bookings" class="booking-list"></div>
-          <h3>Requests sent to me as a helper</h3><div id="provider-bookings" class="booking-list"></div>
+        <div class="account-box account-workspace" id="account-signed-in" hidden>
+          <div class="workspace-intro">
+            <div><p class="kicker">YOUR AUNTIE & UNCLE WORKSPACE</p><h3>Welcome back</h3><p class="workspace-email">Signed in as <strong id="account-user"></strong></p></div>
+            <div class="account-actions"><button type="button" id="refresh-account" class="button button-outline button-small">Refresh data</button><button type="button" id="sign-out" class="button button-outline button-small">Sign out</button></div>
+          </div>
+          <div id="dashboard-stats" class="dashboard-stats" aria-label="Dashboard statistics"></div>
+          <div class="dashboard-tabs" role="tablist" aria-label="Dashboard views">
+            <button type="button" id="tab-customer" role="tab" data-dashboard="customer" aria-controls="dashboard-customer" aria-selected="true">My bookings</button>
+            <button type="button" id="tab-helper" role="tab" data-dashboard="helper" aria-controls="dashboard-helper" aria-selected="false">Helper workspace</button>
+            <button type="button" id="tab-admin" role="tab" data-dashboard="admin" aria-controls="dashboard-admin" aria-selected="false" hidden>Administration</button>
+          </div>
+          <div id="dashboard-customer" class="dashboard-panel" role="tabpanel" aria-labelledby="tab-customer">
+            <div class="dashboard-panel-heading"><div><h3>My booking requests</h3><p>Follow up on requests, view their status and cancel where permitted.</p></div>
+              <label class="dashboard-filter" for="customer-status-filter">Show <select id="customer-status-filter"><option value="all">All requests</option><option value="pending">Pending</option><option value="accepted">Accepted</option><option value="cancelled">Cancelled</option><option value="declined">Declined</option></select></label>
+            </div>
+            <div id="customer-bookings" class="booking-list" aria-live="polite"></div>
+            <a href="#browse" class="button button-dark dashboard-link">Find a helper ↗</a>
+          </div>
+          <div id="dashboard-helper" class="dashboard-panel" role="tabpanel" aria-labelledby="tab-helper" hidden>
+            <div class="dashboard-panel-heading"><div><h3>Helper workspace</h3><p id="helper-application-state" class="form-small">Your helper application status will appear here.</p></div>
+              <a href="#join" id="helper-apply-link" class="button button-outline button-small">Apply as a helper</a>
+            </div>
+            <div id="helper-profile-panel" class="helper-profile-panel" hidden>
+              <div class="dashboard-panel-heading"><div><h4>My public profile</h4><p>Edit your listing. Changes to an approved listing require administrator review again.</p></div>
+                <button type="button" class="button button-outline button-small" id="toggle-profile-edit" aria-expanded="false" aria-controls="helper-profile-form">Edit profile</button>
+              </div>
+              <form id="helper-profile-form" class="helper-profile-form" hidden>
+                <div class="form-grid">
+                  <div class="field"><label for="edit-helper-name">Display name</label><input id="edit-helper-name" type="text" minlength="2" maxlength="80" required></div>
+                  <div class="field"><label for="edit-helper-service">Service</label><select id="edit-helper-service" required><option>Cleaning</option><option>Childcare</option><option>Cooking</option><option>Gardening</option><option>Handyman</option><option>Moving &amp; rearranging</option></select></div>
+                  <div class="field"><label for="edit-helper-area">Service area</label><input id="edit-helper-area" type="text" minlength="2" maxlength="80" required></div>
+                  <div class="field"><label for="edit-helper-rate">Indicative hourly rate (R)</label><input id="edit-helper-rate" type="number" min="1" max="100000" step="0.01" required></div>
+                  <div class="field"><label for="edit-helper-years">Years of experience</label><input id="edit-helper-years" type="number" min="0" max="70" step="1" required></div>
+                  <div class="field field-full"><label for="edit-helper-bio">Profile description (10–1000 characters)</label><textarea id="edit-helper-bio" minlength="10" maxlength="1000" rows="3" required></textarea></div>
+                </div>
+                <p id="edit-helper-error" class="form-error" role="alert" hidden></p>
+                <button type="submit" class="button button-dark button-small">Save profile changes</button>
+              </form>
+            </div>
+            <div class="dashboard-panel-heading"><div><h4>Incoming booking requests</h4><p>Accept or decline pending requests. These are service enquiries, not payments.</p></div>
+              <label class="dashboard-filter" for="helper-status-filter">Show <select id="helper-status-filter"><option value="all">All requests</option><option value="pending">Pending</option><option value="accepted">Accepted</option><option value="declined">Declined</option><option value="cancelled">Cancelled</option></select></label>
+            </div>
+            <div id="provider-bookings" class="booking-list" aria-live="polite"></div>
+          </div>
+          <div id="dashboard-admin" class="dashboard-panel" role="tabpanel" aria-labelledby="tab-admin" hidden>
+            <h3>Marketplace administration</h3>
+            <p class="form-small">Approval publishes a helper listing. It is not identity verification or a background check.</p>
+            <div id="admin-panel" class="admin-sections">
+              <section aria-labelledby="admin-pending-heading"><div class="dashboard-panel-heading"><div><h4 id="admin-pending-heading">Applications awaiting review</h4><p>Approve or reject after performing appropriate verification.</p></div></div><div id="pending-applications" class="booking-list"></div></section>
+              <section aria-labelledby="admin-helpers-heading"><div class="dashboard-panel-heading"><div><h4 id="admin-helpers-heading">Helper listing management</h4><p>Review published or suspended listings. Suspending removes a listing from customer search.</p></div></div><div id="admin-helper-list" class="booking-list"></div></section>
+              <section aria-labelledby="admin-bookings-heading"><div class="dashboard-panel-heading"><div><h4 id="admin-bookings-heading">Recent booking activity</h4><p>Operational overview; customer contact details are not displayed here.</p></div></div><div id="admin-bookings" class="booking-list"></div></section>
+            </div>
+          </div>
+          <p id="dashboard-feedback" class="form-small" role="status" aria-live="polite"></p>
         </div>
         <div class="account-box account-info"><h3>Independent helpers, real choices</h3><p>Households can request a preferred helper. Helpers control whether they accept or decline. Neither party should assume a booking is confirmed until accepted.</p><p><strong>Important:</strong> Admin review of a listing is not a background check, identity guarantee or childcare clearance.</p><p id="account-success" role="status"></p></div>
       </div>
-      <div class="account-box" id="admin-panel" hidden><h3>Marketplace administration · pending helper applications</h3><p class="form-small">Review service claims and safeguarding requirements before approving. Approval makes a profile publicly visible.</p><div id="pending-applications"></div></div>
     </section>
 
     <section class="section shell provider-demo" id="provider-demo" aria-labelledby="provider-demo-title">
