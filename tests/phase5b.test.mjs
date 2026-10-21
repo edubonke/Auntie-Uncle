@@ -69,7 +69,7 @@ test('accepted conflict safety and blocked dates remain enforced',()=>{
   assert.match(sql,/public\.helper_unavailable_dates/);
   assert.match(sql,/tstzrange\(b\.slot_start_at,b\.slot_end_at,'\[\)'\)/);
   assert.match(sql,/v_start<=now\(\)/);
-  assert.match(sql,/new\.status|Each visit/);
+  assert.match(sql,/for v_i in 0\.\.p_occurrences-1 loop/);
   assert.doesNotMatch(sql,/\bdrop\s+table\b|\btruncate\b/i);
 });
 test('Pages ships both new assets',()=>{
