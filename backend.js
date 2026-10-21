@@ -111,7 +111,7 @@ const notice = message => {$('#dashboard-feedback').textContent=message;};
 const phase4 = createPhase4({supabase,currentUser:()=>user,currentHelper:()=>currentHelper,
   selectedHelper:()=>window.AuntieDirectory?.selected(),feedback:notice});
 const phase5 = createPhase5({supabase,currentUser:()=>user,
-  selectedHelper:()=>window.AuntieDirectory?.selected(),feedback:notice,
+  selectedHelper:()=>window.AuntieDirectory?.selected(),dayAvailability:(helperId,date)=>phase4.canRequest(helperId,date),feedback:notice,
   refreshAccount:()=>refreshAccount(),
   redrawBookings:()=>{
     renderBookingList('#customer-bookings',customerRows,'customer');
