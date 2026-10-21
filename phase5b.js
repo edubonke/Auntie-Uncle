@@ -3,8 +3,11 @@
  * Absence of migration hides new actions; earlier phases remain unaffected. */
 const recurringDateText = date => date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
 export function recurringDates(start,kind,quantity){
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(start))return [];
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(start) ||
+     !['Weekly','Fortnightly','Monthly'].includes(kind) ||
+     !Number.isInteger(quantity) || quantity<2 || quantity>8)return [];
   const [y,m,d]=start.split('-').map(Number);
+  if(m<1||m>12||d<1||d>new Date(y,m,0,12).getDate())return [];
   const result=[];
   for(let i=0;i<quantity;i++){
     let date;
@@ -16,9 +19,9 @@ export function recurringDates(start,kind,quantity){
       date=new Date(first.getFullYear(),first.getMonth(),Math.min(d,max),12);
     }
     result.push(recurringDateText(date));
-}
-  return result;
   }
+  return result;
+}
 
 export function createPhase5B({supabase,currentUser,selectedHelper,customerBookings,helperBookings,feedback,refreshAccount}) {
   const $=selector=>document.querySelector(selector);
