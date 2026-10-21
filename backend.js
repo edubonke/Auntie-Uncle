@@ -3,6 +3,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.0';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './supabase-config.js';
 import { createPhase4 } from './phase4.js';
+import { createPhase5 } from './phase5.js';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {persistSession: true, autoRefreshToken: true, detectSessionInUrl: true}
@@ -32,6 +33,7 @@ const inlineError = (selector, message) => {
 };
 function safeError(error) {
   console.warn('[Auntie & Uncle] Backend request failed:', error?.code || 'unknown');
+  if(error?.code==='23P01'||String(error?.message||'').includes('time slot is already booked')) return 'This helper is already booked at that time. Choose another slot.';
   return error?.message === 'Helper unavailable on selected date' ? 'This helper has blocked the selected date. Please choose another day.' :
     error?.message === 'Invalid login credentials' ? 'Incorrect email or password.' :
     'The request could not be completed. Please try again or contact the platform administrator.';
@@ -108,6 +110,13 @@ const money = value => 'R' + Number(value).toLocaleString('en-ZA',{minimumFracti
 const notice = message => {$('#dashboard-feedback').textContent=message;};
 const phase4 = createPhase4({supabase,currentUser:()=>user,currentHelper:()=>currentHelper,
   selectedHelper:()=>window.AuntieDirectory?.selected(),feedback:notice});
+const phase5 = createPhase5({supabase,currentUser:()=>user,
+  selectedHelper:()=>window.AuntieDirectory?.selected(),feedback:notice,
+  refreshAccount:()=>refreshAccount(),
+  redrawBookings:()=>{
+    renderBookingList('#customer-bookings',customerRows,'customer');
+    renderBookingList('#provider-bookings',providerRows,'helper');
+  }});
 function summaryCard(label, number, note) {
   const item=elt('div','','stat-card');
   item.append(elt('span',label,'stat-label'),elt('strong',String(number),'stat-number'),elt('span',note,'stat-note'));
@@ -199,6 +208,7 @@ function renderBookingList(selector, rows, view) {
         notice('Booking request cancelled.');await refreshAccount();
       }));
     }
+    phase5.enhanceBookingCard(card,row,view);
     root.append(card);
   }
 }
@@ -325,6 +335,7 @@ async function refreshAccount() {
       $('#customer-bookings').replaceChildren();$('#provider-bookings').replaceChildren();
       switchDashboard('customer');
       phase4.reset();
+      phase5.reset();
       return;
     }
     $('#account-user').textContent=user.email||'Signed-in member';
@@ -351,6 +362,7 @@ async function refreshAccount() {
     if(newSession)activeDashboard=adminEnabled?'admin':profile?'helper':'customer';
     switchDashboard(activeDashboard==='admin'&&!adminEnabled?'customer':activeDashboard);
     await phase4.refresh();
+    await phase5.refresh();
   }catch(error){console.warn('[Auntie & Uncle] Dashboard refresh failed:',error?.code||'unexpected');notice('Unable to refresh your account. Try again.');}
   finally{refreshing=false;}
 }
@@ -425,6 +437,8 @@ window.addEventListener('auntie:book',async e=>{
       inlineError('#form-error','This helper is unavailable on the selected date. Choose another date.');
       return;
     }
+    const scheduleCheck=await phase5.checkBeforeBooking(selected);
+    if(!scheduleCheck.ok){inlineError('#form-error',scheduleCheck.message);return;}
     const payload={helper_id:selected.id,service:formValue('service'),frequency:formValue('frequency'),
       area:formValue('area'),preferred_date:formValue('date'),preferred_time:formValue('booking-time')||null,
       estimated_hours:formValue('booking-hours')?Number(formValue('booking-hours')):null,details:formValue('details')};
