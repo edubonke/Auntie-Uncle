@@ -167,11 +167,21 @@ export function createPhase5B({supabase,currentUser,selectedHelper,customerBooki
     if(error){feedback('Could not load recurring series.');return;}
     const series=data??[],customer=series.filter(s=>s.customer_id===user.id),
       helper=series.filter(s=>s.customer_id!==user.id);
+    // Read only series links + statuses, subject to the existing booking RLS.
+    // The legacy booking queries stay schema-compatible before migration.
+    let occurrenceRows=[];
+    if(series.length){
+      const ids=series.map(s=>s.id);
+      const response=await supabase.from('bookings').select('series_id,status')
+        .in('series_id',ids).limit(500);
+      if(response.error){feedback('Could not load recurring visit counts.');return;}
+      occurrenceRows=response.data??[];
+    }
     $('#phase5b-customer-series').hidden=false;
-    renderSeries($('#phase5b-customer-series-list'),customer,customerBookings(),'customer');
+    renderSeries($('#phase5b-customer-series-list'),customer,occurrenceRows,true);
     const asHelper=helperBookings();
-    $('#phase5b-helper-series').hidden=!asHelper;
-    if(asHelper)renderSeries($('#phase5b-helper-series-list'),helper,asHelper,false);
+    $('#phase5b-helper-series').hidden=!asHelper.active;
+    if(asHelper.active)renderSeries($('#phase5b-helper-series-list'),helper,occurrenceRows,false);
     updatePreview();
   }
   enabled.addEventListener('change',()=>{
