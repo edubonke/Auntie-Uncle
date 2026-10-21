@@ -11,6 +11,10 @@ A responsive, two-sided South African marketplace website for households and ind
 - Not implemented: payments, verification/background checks, full platform terms and privacy policy, document uploads, chat, availability and scheduling conflicts, fees, reviews, service guarantee, production monitoring, safeguarding workflows for childcare.
 - Public listing approval is an internal administrative decision, **not proof of ID, qualification or background checks**.
 
+## Phase 5A — Appointment scheduling and rescheduling
+
+The time-slot picker, database overlap protection and helper-approved rescheduling require a **separate Supabase SQL migration**. See [Phase 5A browser-only activation and test instructions](PHASE5_SETUP.md). Phase 4 booking behaviour remains available until the new tables and functions exist.
+
 ## Phase 4 optional extension
 
 Availability calendar and private in-app updates require an **additional SQL migration**. Follow [the browser-only Phase 4 setup and test guide](PHASE4_SETUP.md). The site retains its existing booking flow until the migration is applied.
