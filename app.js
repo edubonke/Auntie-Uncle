@@ -146,6 +146,7 @@ function selectHelper(id) {
 function updateSelectedHelper() {
   $('#selected-provider').hidden = !selectedHelper;
   $('#selected-provider-name').textContent = selectedHelper ? `Requesting ${selectedHelper.name} · ${selectedHelper.service}${selectedHelper.isLive ? '' : ' (demo profile)'}` : '';
+  window.dispatchEvent(new CustomEvent('auntie:helper-selected'));
 }
 $('#clear-provider').addEventListener('click', () => { selectedHelper = null; updateSelectedHelper(); });
 bookingService.addEventListener('change', () => {
