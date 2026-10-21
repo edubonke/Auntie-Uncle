@@ -153,9 +153,9 @@ begin
   end if;
   return null;
 end;
-$;
+$$;
 revoke all on function public.notify_helper_review() from public, anon, authenticated;
 create trigger helper_activity_notification
-after insert or update of status on public.helper_profiles
+after insert or update on public.helper_profiles
 for each row execute function public.notify_helper_review();
 commit;
