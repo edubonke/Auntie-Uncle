@@ -45,6 +45,11 @@ test('notifications are private and are not client-insertable',()=>{
   assert.match(sql,/notify_booking_change/);
   assert.match(sql,/notify_helper_review/);
 });
+test('all three PL/pgSQL functions have balanced dollar quote delimiters',()=>{
+  assert.equal((sql.match(/\\$\\$/g)||[]).length,6,'Each of the three function bodies must open and close with $');
+  assert.match(sql,/return null;\\s*end;\\s*\\$\\$;\\s*revoke all on function public\\.notify_helper_review/);
+  assert.match(sql,/after insert or update on public\\.helper_profiles/);
+});
 test('deployment contains both new assets',()=>{
   assert.match(html,/phase4\.css/);
   assert.match(backend,/import \{ createPhase4 \} from '\.\/phase4\.js'/);
